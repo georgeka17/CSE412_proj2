@@ -64,6 +64,7 @@ class ReflexAgent(Agent):
     successorGameState = currentGameState.generatePacmanSuccessor(action)
     newPos = successorGameState.getPacmanPosition()
     newFood = successorGameState.getFood()
+    newBigFood = successorGameState.getCapsules()
     newGhostStates = successorGameState.getGhostStates()
     newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
@@ -72,12 +73,12 @@ class ReflexAgent(Agent):
     #score begins at 0
     score = 0
     #relative score
-    score += successorGameState.getScore() - currentGameState.getScore()
+    # score += successorGameState.getScore() - currentGameState.getScore()
 
 
     #check if successor is Win
     if successorGameState.isWin():
-      return 10000
+      return 100000
 
 
     #punish for stopping
@@ -90,12 +91,23 @@ class ReflexAgent(Agent):
     food_dist = [0]
     for position in food:
       food_dist.append(util.manhattanDistance(newPos, position))
-
+      
     curr_food = currentGameState.getFood().asList()
     food_dist_curr = [0]
     for curr_pos in curr_food:
       food_dist_curr.append(util.manhattanDistance(newPos, curr_pos))
 
+    #get distance from successor position to big foods
+    big_food = newBigFood
+    big_food_dist = [0]
+    for position in big_food:
+      big_food_dist.append(util.manhattanDistance(newPos, position))
+      
+    curr_big_food = currentGameState.getCapsules()
+    big_food_dist_curr = [0]
+    for curr_pos in curr_big_food:
+      big_food_dist_curr.append(util.manhattanDistance(newPos, curr_pos))
+    
 
     #successor: get positions of ghosts
     ghost_pos = []
@@ -105,25 +117,33 @@ class ReflexAgent(Agent):
     food_left = len(food)
     food_left_curr = len(curr_food)
 
+    big_food_left = len(big_food)
+    big_food_left_curr = len(curr_big_food)
+
 
     #punish for more food left
-    score -= (10*food_left)
+    #score -= (10*food_left)
+    # score -= (50*big_food_left)
+
+    #avg food distance
+    # score -= sum(food_dist)/food_left
+
 
     #reward for less food in successor state
-    if food_left < food_left_curr:
-      score += 200
+    # if food_left < food_left_curr:
+    #   score += 200
+    # if big_food_left < big_food_left_curr:
+    #   score += 500
 
     #reward for min distance from food getting smaller
-    if min(food_dist) > 0 and min(food_dist_curr) > 0:
-      if (1/(min(food_dist)) < 1/(min(food_dist_curr))):
-        score += 500
-      else:
-        score -= 500
-    else:
-      if (min(food_dist) < min(food_dist_curr)):
-        score += 500
-      else:
-        score -= 500
+    # if (min(food_dist) < min(food_dist_curr)):
+    #   score += 500
+    # else:
+    #   score -= 500
+
+    # if (min(big_food_dist) < min(big_food_dist_curr)):
+    #   score += 1000
+    
   
     #get dist from successor position to ghosts
     ghost_dist = []
@@ -133,47 +153,36 @@ class ReflexAgent(Agent):
 
     #current: get positions of ghosts
     ghost_pos_curr  = []
+    scared_ghost_pos_curr = []
     for ghost in currentGameState.getGhostStates():
-      ghost_pos_curr.append(ghost.getPosition())
+      if ghost.scaredTimer:
+        scared_ghost_pos_curr.append(ghost.getPosition())
+      else:
+        ghost_pos_curr.append(ghost.getPosition())
 
     ghost_dist_curr = []
+    scared_ghost_dist_curr = []
     for position in ghost_pos_curr:
       ghost_dist_curr.append(util.manhattanDistance(newPos, position))
-
-    total_scared = sum(newScaredTimes)
-
-    if total_scared > 0:
-      #move toward scared ghosts
-      if (min(ghost_dist_curr) > 0 and min(ghost_dist) > 0):
-        if (1/(min(ghost_dist_curr)) < 1/(min(ghost_dist))):
-          score += 200
-        else:
-          score -= 100
-      else:
-        if (min(ghost_dist_curr) < min(ghost_dist)):
-          score += 200
-        else:
-          score -= 100
-    else:
-      if (min(ghost_dist_curr) > 0 and min(ghost_dist) > 0):
-        if (1/(min(ghost_dist_curr)) < 1/(min(ghost_dist))):
-          score -= 50
-        else:
-          score += 100
-      else:
-        if (min(ghost_dist_curr) < min(ghost_dist)):
-          score -= 50
-        else:
-          score += 100
+    for scposition in scared_ghost_pos_curr:
+      scared_ghost_dist_curr.append(util.manhattanDistance(newPos, position))
 
 
-    #increase score if next state is big food
-    bigFood = len(successorGameState.getCapsules())
-    if bigFood > 0:
-      print bigFood
-    if newPos in currentGameState.getCapsules():
-      score += 100*bigFood
+    FoodDistances = sum(food_dist_curr)
+    MinFoodDist = min(food_dist_curr)
+    BigFoodDistances = sum(big_food_dist_curr)
+    GhostDistances = sum(ghost_dist_curr)
+    ClosestGhostDist = min(ghost_dist_curr)
+    ScaredGhostDistances = sum(scared_ghost_dist_curr)
+    FoodLeft = food_left_curr
+    BigFoodLeft = big_food_left_curr
 
+    score = successorGameState.getScore() - 5*FoodDistances + 10*GhostDistances - 2*ScaredGhostDistances - 10*FoodLeft + 20*ClosestGhostDist
+    # score = successorGameState.getScore() + ClosestGhostDist - (10*MinFoodDist)
+
+
+    # score += sum(ghost_dist_curr)
+    # score += 5*sum(scared_ghost_dist_curr)
 
 
     return score
@@ -447,9 +456,12 @@ def betterEvaluationFunction(currentGameState):
   # successorGameState = currentGameState.generatePacmanSuccessor(action)
   newPos = currentGameState.getPacmanPosition()
   newFood = currentGameState.getFood()
+  newBigFood = currentGameState.getCapsules()
   newGhostStates = currentGameState.getGhostStates()
   newScaredTime = [ghostState.scaredTimer for ghostState in newGhostStates]
 
+  #succesor game state
+  
 
   #get important states
     #get distance from successor position to all foods
@@ -461,6 +473,17 @@ def betterEvaluationFunction(currentGameState):
   food_dist_curr = [0]
   for curr_pos in curr_food:
     food_dist_curr.append(util.manhattanDistance(newPos, curr_pos))
+
+    #distance from successor position to big foods
+  big_food = newBigFood
+  big_food_dist = [0]
+  for position in big_food:
+    big_food_dist.append(util.manhattanDistance(newPos, position))
+  curr_big_food = currentGameState.getCapsules()
+  big_food_dist_curr = [0]
+  for curr_pos in curr_big_food:
+    big_food_dist_curr.append(util.manhattanDistance(newPos, curr_pos))
+
 
     #get distance from current position to regular, scared ghosts
   ghost_pos_curr = []
@@ -482,25 +505,30 @@ def betterEvaluationFunction(currentGameState):
   food_left_curr = len(curr_food)
 
     #get number of big pellets left
-  bigFood_left = len(currentGameState.getCapsules())
+  bigFood_left = len(big_food)
+  bigFood_left_curr = len(curr_big_food)
 
 
   #evaluation function
   currScore = scoreEvaluationFunction(currentGameState)
   FoodDistances = sum(food_dist_curr)
+  BigFoodDistances = sum(big_food_dist_curr)
   GhostDistances = sum(ghost_dist_curr)
   ScaredGhostDistances = sum(scared_ghost_dist_curr)
   FoodLeft = food_left_curr
-  BigFoodLeft = bigFood_left
+  BigFoodLeft = bigFood_left_curr  #bigFood_left
+  # NextFoodDistances 
 
-  if sum(food_dist_curr) > 0:
-    FoodDistances = 1/sum(food_dist_curr)
-  if sum(ghost_dist_curr) > 0:
-    GhostDistances = 1/sum(ghost_dist_curr)
-  if sum(scared_ghost_dist_curr) > 0:
-    ScaredGhostDistances = 1/sum(scared_ghost_dist_curr)
+
+#  if sum(food_dist_curr) > 0:
+#    FoodDistances = 1/sum(food_dist_curr)
+#  if sum(ghost_dist_curr) > 0:
+#    GhostDistances = 1/sum(ghost_dist_curr)
+#  if sum(scared_ghost_dist_curr) > 0:
+#    ScaredGhostDistances = 1/sum(scared_ghost_dist_curr)
     
-  score = currScore - FoodDistances - GhostDistances - ScaredGhostDistances - FoodLeft - 5*BigFoodLeft
+  score = currScore - FoodDistances - 3*BigFoodDistances + GhostDistances \
+- 2*ScaredGhostDistances - FoodLeft - 5*BigFoodLeft
 
   return score
 
