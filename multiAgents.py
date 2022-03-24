@@ -382,12 +382,94 @@ def betterEvaluationFunction(currentGameState):
   """
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
-
     DESCRIPTION: <write something here so we know what you did>
-  """
+  x"""
   "*** YOUR CODE HERE ***"
-  util.raiseNotDefined()
+  
+  #initial stuff:
+  # successorGameState = currentGameState.generatePacmanSuccessor(action)
+  newPos = currentGameState.getPacmanPosition()
+  newFood = currentGameState.getFood()
+  newBigFood = currentGameState.getCapsules()
+  newGhostStates = currentGameState.getGhostStates()
+  newScaredTime = [ghostState.scaredTimer for ghostState in newGhostStates]
 
+  #succesor game state
+  
+
+  #get important states
+    #get distance from successor position to all foods
+  food = newFood.asList()
+  food_dist = [0]
+  for position in food:
+    food_dist.append(util.manhattanDistance(newPos, position))
+    
+  #distance from successor position to big foods
+  big_food = newBigFood
+  big_food_dist = [0]
+  for position in big_food:
+    big_food_dist.append(util.manhattanDistance(newPos, position))
+
+  #get distance from current position to regular, scared ghosts
+  #positions first
+  ghost_pos_curr = []
+  scared_ghost_pos_curr = []
+  for ghost in currentGameState.getGhostStates():
+    if ghost.scaredTimer:
+      scared_ghost_pos_curr.append(ghost.getPosition())
+    else:
+      ghost_pos_curr.append(ghost.getPosition())
+  
+
+  ghost_dist_curr = []
+  scared_ghost_dist_curr = []
+  for position in ghost_pos_curr:
+      ghost_dist_curr.append((util.manhattanDistance(newPos, position)))
+
+  for scposition in scared_ghost_pos_curr:
+    dist = util.manhattanDistance(newPos, position)
+    if dist != 0:
+      scared_ghost_dist_curr.append(dist)
+
+  #get number of regular food pellets left
+  FoodLeft = len(food)
+  #get number of big pellets left
+  bigFood_left = len(big_food)
+
+  #evaluation function
+  currScore = scoreEvaluationFunction(currentGameState)
+  FoodDistances = sum(food_dist)
+
+  if FoodDistances > 0:
+    FoodDistances = 1.0/FoodDistances
+
+  BigFoodDistances = sum(big_food_dist)
+
+  if(BigFoodDistances != 0):
+    foodScore = FoodDistances/BigFoodDistances
+  else:
+    foodScore = FoodDistances
+
+  if(ghost_dist_curr):
+    GhostDistances = min(ghost_dist_curr)
+  else:
+    GhostDistances = 0;
+  if(scared_ghost_dist_curr):
+    ScaredGhostDistances = min(scared_ghost_dist_curr)
+  else:
+    ScaredGhostDistances = 0
+
+
+#  if sum(food_dist_curr) > 0:
+#    FoodDistances = 1/sum(food_dist_curr)
+#  if sum(ghost_dist_curr) > 0:
+#    GhostDistances = 1/sum(ghost_dist_curr)
+#  if sum(scared_ghost_dist_curr) > 0:
+#    ScaredGhostDistances = 1/sum(scared_ghost_dist_curr)
+
+  score = currScore + FoodDistances - FoodLeft - 3*BigFoodDistances  - 3*GhostDistances*ScaredGhostDistances
+  
+  return score
 # Abbreviation
 better = betterEvaluationFunction
 
@@ -406,4 +488,5 @@ class ContestAgent(MultiAgentSearchAgent):
     """
     "*** YOUR CODE HERE ***"
     util.raiseNotDefined()
+
 
